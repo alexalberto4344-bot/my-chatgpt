@@ -48,6 +48,12 @@ elif upload_type == "📄 Document":
     doc_file = st.sidebar.file_uploader("📄 Choose file", type=["pdf", "txt"], key="doc_new")
 
 st.sidebar.markdown("---")
+
+if st.sidebar.button("🗑️ Delete This Chat"):
+    st.session_state.messages = []
+    st.rerun()
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("Made with ⚡🧠❤️ by Barq")
 
 MY_STYLE = """
