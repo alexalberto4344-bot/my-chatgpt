@@ -84,7 +84,7 @@ def get_history_text():
 def generate_text_stream(user_input):
     history = get_history_text()
     full = MY_STYLE + f"\nGrade: {grade}, Subject: {subject}, Mode: {mode}\nChat History:\n{history}\nStudent Now: " + str(user_input)
-    models = ["gemini-3.8-flash"]
+    models = ["gemini-3.8-flash","gemini-2.5-flash"]
     for model in models:
         try:
             stream = client.models.generate_content_stream(model=model, contents=full)
