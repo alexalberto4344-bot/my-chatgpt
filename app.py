@@ -84,7 +84,7 @@ def get_history_text():
 def generate_text_stream(user_input):
     history = get_history_text()
     full = MY_STYLE + f"\nGrade: {grade}, Subject: {subject}, Mode: {mode}\nChat History:\n{history}\nStudent Now: " + str(user_input)
-    models = [["gemini-2.5-flash-lite", "gemini-2.5-flash"]]
+    models = [["gemini-2.0-flash", "gemini-2.0-flash"]]
     for model in models:
         try:
             stream = client.models.generate_content_stream(model=model, contents=full)
@@ -141,7 +141,7 @@ if uploaded_file is not None:
                 try:
                     img = Image.open(uploaded_file)
                     prompt = MY_STYLE + f" Grade: {grade} - {subject}. Solve this homework photo step by step in Egyptian Arabic with LOTS of emojis. Think, solve, check answer, show all steps, final answer, give similar question."
-                    response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=[prompt, img])
+                    response = client.models.generate_content(model="gemini-2.0-flash", contents=[prompt, img])
                     reply = response.text
                     st.markdown(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
