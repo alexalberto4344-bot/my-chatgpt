@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="My ChatGPT", page_icon="🤖")
+st.set_page_config(page_title="Alex", page_icon="⚡")
 st.title("My ChatGPT")
 
 if "messages" not in st.session_state:
