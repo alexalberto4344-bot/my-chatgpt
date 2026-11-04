@@ -100,7 +100,7 @@ def generate_text_stream(user_input):
 def generate_image(prompt_text):
     try:
        response = client.models.generate_content(model="gemini-2.5-flash-image", contents=prompt_text)
-        for part in response.candidates[0].content.parts:
+       for part in response.candidates[0].content.parts:
             if part.inline_data:
                 return Image.open(BytesIO(part.inline_data.data))
     except Exception:
