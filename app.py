@@ -4,7 +4,7 @@ from io import BytesIO
 from google import genai
 from PIL import Image
 
-st.set_page_config(page_title="Barq ⚡", page_icon="🧠", layout="centered")
+st.set_page_config(page_title="Barq ⚡", page_icon="🧠", layout="wide")
 st.title("Barq ⚡🧠")
 st.caption("Powered by Alex 🤖 - The Smartest One 🔥⚡")
 
@@ -16,19 +16,39 @@ except:
 
 client = genai.Client(api_key=GEMINI_KEY)
 
+# --- SIDEBAR: Settings + Gallery / Camera / Document ON THE SIDE ---
 st.sidebar.title("⚡ Barq Settings 📚")
 grade = st.sidebar.selectbox("📚 Choose Grade:", ["1 Primary", "2 Primary", "3 Primary", "4 Primary", "5 Primary", "6 Primary", "1 Prep", "2 Prep", "3 Prep", "1 Secondary", "2 Secondary", "3 Secondary"])
 subject = st.sidebar.selectbox("📖 Choose Subject:", ["➗ Math", "🔬 Science", "📝 Arabic", "🔤 English", "🌍 Social Studies", "⚛️ Physics", "🧪 Chemistry", "🧬 Biology", "🏛️ History", "🗺️ Geography", "🇫🇷 French", "💡 Other"])
 mode = st.sidebar.radio("🎯 Mode:", ["💬 Chat & Draw 🎨", "📖 Explain Lesson 📚", "✏️ Solve Homework 🧠", "🏆 Genius Mode 🧠🔥"])
 st.sidebar.info(f"⚡🧠 You are in: {grade} - {subject} - {mode}")
 
-# --- FIXED: Show real error ---
 if st.sidebar.button("🔍 Test Connection"):
     try:
         r = client.models.generate_content(model="gemini-2.0-flash", contents="hi")
-        st.sidebar.success(f"✅ Working! Model replied: {r.text[:100]}")
+        st.sidebar.success(f"✅ Working! {r.text[:100]}")
     except Exception as e:
         st.sidebar.error(f"❌ Error: {e}")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📎 Send Homework 📸📄")
+st.sidebar.markdown("Upload here, on the side 👈")
+
+upload_type = st.sidebar.radio("Choose:", ["🖼️ Gallery", "📸 Camera", "📄 Document"], horizontal=False)
+
+gallery_file = None
+camera_file = None
+doc_file = None
+
+if upload_type == "🖼️ Gallery":
+    gallery_file = st.sidebar.file_uploader("🖼️ Choose photo", type=["jpg", "jpeg", "png", "webp"], key="gallery_new")
+elif upload_type == "📸 Camera":
+    camera_file = st.sidebar.camera_input("📸 Take photo", key="camera_new")
+elif upload_type == "📄 Document":
+    doc_file = st.sidebar.file_uploader("📄 Choose file", type=["pdf", "txt"], key="doc_new")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("Made with ⚡🧠❤️ by Barq")
 
 MY_STYLE = """
 You are Alex inside Barq app. You are THE SMARTEST AI in the world.
@@ -58,7 +78,6 @@ def get_history_text():
 def generate_text_stream(user_input):
     history = get_history_text()
     full = MY_STYLE + f"\nGrade: {grade}, Subject: {subject}, Mode: {mode}\nChat History:\n{history}\nStudent Now: " + str(user_input)
-    # FIXED: Use only FREE models that work with free key, in order
     models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"]
     for model in models:
         try:
@@ -70,7 +89,7 @@ def generate_text_stream(user_input):
         except Exception as e:
             print(f"Model {model} failed: {e}")
             continue
-    yield f"❌ Sorry 😅 - All models failed. Check your GEMINI_API_KEY in Secrets. Make sure it is correct and you have quota."
+    yield "❌ Sorry 😅 - All models failed. Check your GEMINI_API_KEY in Secrets."
 
 def generate_image(prompt_text):
     try:
@@ -96,6 +115,7 @@ def log_to_telegram(user_msg, ai_reply):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# --- MAIN AREA: Only Chat, clean like WhatsApp ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         if msg.get("type") == "image":
@@ -103,20 +123,13 @@ for msg in st.session_state.messages:
         else:
             st.markdown(msg["content"])
 
-st.markdown("### 📎 Send Homework Photo or File 📸📄")
-tab1, tab2, tab3 = st.tabs(["🖼️ Gallery", "📸 Camera", "📄 Document"])
-with tab1:
-    gallery_file = st.file_uploader("🖼️ Choose photo", type=["jpg", "jpeg", "png", "webp"], key="gallery_new")
-with tab2:
-    camera_file = st.camera_input("📸 Take photo", key="camera_new")
-with tab3:
-    doc_file = st.file_uploader("📄 Choose file", type=["pdf", "txt"], key="doc_new")
-
+# --- Handle Sidebar Uploads ---
 uploaded_file = gallery_file if gallery_file is not None else camera_file
 
 if uploaded_file is not None:
-    st.image(uploaded_file, caption="📸 Your photo")
-    if st.button("✏️🧠 Solve this homework - Genius", key="solve_btn"):
+    with st.chat_message("user"):
+        st.image(uploaded_file, caption="📸 Your photo")
+    if st.sidebar.button("✏️🧠 Solve this homework - Genius"):
         with st.chat_message("assistant"):
             with st.spinner("⚡🧠 Barq Genius is thinking..."):
                 try:
@@ -131,8 +144,8 @@ if uploaded_file is not None:
                     st.error(f"❌ Error: {e}")
 
 if doc_file is not None:
-    st.success(f"✅ File received: {doc_file.name} 📄")
-    if st.button("📖🧠 Let Alex read this file", key="read_btn"):
+    st.sidebar.success(f"✅ File: {doc_file.name} 📄")
+    if st.sidebar.button("📖🧠 Let Alex read this file"):
         with st.chat_message("assistant"):
             try:
                 content = doc_file.read().decode(errors="ignore")[:5000]
