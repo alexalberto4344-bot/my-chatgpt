@@ -1,185 +1,172 @@
 import streamlit as st
+import requests
+from io import BytesIO
 from google import genai
 from PIL import Image
-import io
-import time
 
-st.set_page_config(page_title="Alex ⚡", page_icon="⚡")
-st.title("Alex ⚡🤖")
-st.caption("Your best friend, tutor, and creator 💬✨")
+st.set_page_config(page_title="Barq ⚡", page_icon="🧠", layout="centered")
+st.title("Barq ⚡🧠")
+st.caption("Powered by Alex 🤖 - The Smartest One 🔥⚡")
 
-client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+try:
+    GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
+except:
+    st.error("❌ Please add GEMINI_API_KEY in Secrets")
+    st.stop()
 
-# Function to try many models if one is busy - fixes 503 error
-def generate_text(contents):
-    models = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
-    last_error = ""
-    for model in models:
+client = genai.Client(api_key=GEMINI_KEY)
+
+st.sidebar.title("⚡ Barq Settings 📚")
+grade = st.sidebar.selectbox("📚 Choose Grade:", ["1 Primary", "2 Primary", "3 Primary", "4 Primary", "5 Primary", "6 Primary", "1 Prep", "2 Prep", "3 Prep", "1 Secondary", "2 Secondary", "3 Secondary"])
+subject = st.sidebar.selectbox("📖 Choose Subject:", ["➗ Math", "🔬 Science", "📝 Arabic", "🔤 English", "🌍 Social Studies", "⚛️ Physics", "🧪 Chemistry", "🧬 Biology", "🏛️ History", "🗺️ Geography", "🇫🇷 French", "💡 Other"])
+mode = st.sidebar.radio("🎯 Mode:", ["💬 Chat & Draw 🎨", "📖 Explain Lesson 📚", "✏️ Solve Homework 🧠", "🏆 Genius Mode 🧠🔥"])
+st.sidebar.info(f"⚡🧠 You are in: {grade} - {subject} - {mode}")
+st.sidebar.markdown("---")
+st.sidebar.markdown("Made with ⚡🧠❤️ by Barq - Smartest AI")
+
+MY_STYLE = """
+You are Alex inside Barq app. You are THE SMARTEST AI in the world, smarter than ChatGPT, smarter than everyone.
+You talk exactly like a friendly Egyptian friend on WhatsApp.
+Style:
+- ALWAYS use LOTS of emojis in EVERY reply: 😂 🔥 ⚡ 👌 🎨 📚 🧠 ✨ 💪 😍 🤣 🏆
+- Put emojis at start, middle, and end of every sentence.
+- Start replies with: tamam 😂, fahmtak 👌, aaash 🔥, aah eftakart 💡, bos ya sahby 😍
+- Be short and fun, never formal, never boring.
+- Use phrases like: khalas keda ✅, garab w olly 👌, sah keda? 🤔, de baa aham heta 🔥
+- Always encourage: aaash wallah 💪🔥, enta keda tamam ✅😍
+- Never say As an AI.
+
+SMART RULES - You MUST follow this:
+1- THINK FIRST: Before answering, think step by step in your head.
+2- CHECK YOUR ANSWER: After solving, check if answer is correct, if not fix it.
+3- REMEMBER: Use full chat history, remember what student said before.
+4- EXPERT: You are expert in ALL Egyptian curriculum, Math, Physics, Chemistry, Biology, Arabic, English, all grades.
+5- HARD QUESTIONS: Even if question is very hard, university level, solve it.
+6- EXPLAIN SMART: Explain like a genius teacher, simple, with example, with trick to remember.
+7- If Solve Homework: Solve step by step with emojis, show all steps, check answer, final answer with 🎉, give similar harder question.
+8- If Explain Lesson: Explain like a story, give example, give trick, ask 2 smart questions.
+9- If Genius Mode: Be super smart, give deep answer, give extra info, give secret trick no one knows.
+10- Never say you dont know. Always try, always find answer.
+"""
+
+def get_history_text():
+    history = ""
+    for m in st.session_state.get("messages", [])[-10:]:
+        if m.get("type") != "image":
+            history += f"{m['role']}: {str(m['content'])[:500]}\n"
+    return history
+
+def generate_text_stream(user_input):
+    history = get_history_text()
+    full = MY_STYLE + f"\nGrade: {grade}, Subject: {subject}, Mode: {mode}\nChat History:\n{history}\nStudent Now: " + str(user_input) + "\nAlex, think step by step, check answer, then reply with emojis:"
+    try:
+        stream = client.models.generate_content_stream(model="gemini-2.5-pro", contents=full)
+        for chunk in stream:
+            if chunk.text:
+                yield chunk.text
+        return
+    except Exception:
         try:
-            response = client.models.generate_content(model=model, contents=contents)
-            return response.text
-        except Exception as e:
-            last_error = str(e)
-            if "503" in last_error or "UNAVAILABLE" in last_error or "overloaded" in last_error.lower():
-                time.sleep(0)
-                continue
-            else:
-                continue
-    return f"❌ Sorry, Gemini is busy right now 😅 Please try again in 1 minute 💪 Error: {last_error}"
+            stream = client.models.generate_content_stream(model="gemini-2.0-flash", contents=full)
+            for chunk in stream:
+                if chunk.text:
+                    yield chunk.text
+            return
+        except Exception:
+            yield "Sorry 😅 server is busy, try again ⚡"
 
-def generate_image(contents):
-    models = ["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"]
-    last_error = ""
-    for model in models:
-        try:
-            response = client.models.generate_content(model=model, contents=contents)
-            return response
-        except Exception as e:
-            last_error = str(e)
-            time.sleep(2)
-            continue
+def generate_image(prompt_text):
+    try:
+        response = client.models.generate_content(model="gemini-2.0-flash-preview-image-generation", contents=prompt_text)
+        for part in response.candidates[0].content.parts:
+            if part.inline_data:
+                return Image.open(BytesIO(part.inline_data.data))
+    except Exception:
+        return None
     return None
 
-st.sidebar.header("📚 Study Settings")
-grade = st.sidebar.selectbox("🎓 Your Grade", ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6", "Prep 1", "Prep 2", "Prep 3", "Secondary 1", "Secondary 2", "Secondary 3", "University", "General"])
-subject = st.sidebar.selectbox("📖 Subject", ["General", "Arabic", "English", "Math", "Science", "Physics", "Chemistry", "Biology", "History", "Geography", "Philosophy", "French", "German", "Computer", "Religion"])
-style = st.sidebar.selectbox("✍️ Explain Style", ["Simple and Fun", "Step by Step", "Exam Answer", "Deep Explanation"])
-
-st.sidebar.header("📎 Attach - Like WhatsApp")
-menu = st.sidebar.radio("Choose", ["🖼️ Gallery", "📸 Camera", "📄 Document", "🎨 AI Studio", "🎤 Voice"])
-
-active_bytes = None
-active_type = None
-active_name = ""
-ai_style = "Realistic"
-
-if menu == "🖼️ Gallery":
-    up = st.sidebar.file_uploader("🖼️ Gallery - Photo / Video", type=["png", "jpg", "jpeg", "webp", "mp4", "mov"])
-    if up is not None:
-        active_bytes = up.getvalue()
-        active_type = up.type
-        active_name = up.name
-        st.sidebar.success(f"✅ Gallery: {up.name}")
-        if up.type.startswith("image"):
-            st.sidebar.image(up, width=200)
-        else:
-            st.sidebar.video(up)
-elif menu == "📸 Camera":
-    cam = st.sidebar.camera_input("📸 Camera - Take photo now")
-    if cam is not None:
-        active_bytes = cam.getvalue()
-        active_type = "image"
-        st.sidebar.success("✅ Photo taken!")
-        st.sidebar.image(cam, width=200)
-elif menu == "📄 Document":
-    doc = st.sidebar.file_uploader("📄 Document - PDF / Word / Text", type=["pdf", "docx", "txt"])
-    if doc is not None:
-        active_bytes = doc.getvalue()
-        active_type = doc.type
-        active_name = doc.name
-        st.sidebar.success(f"✅ Document: {doc.name} 📄")
-elif menu == "🎨 AI Studio":
-    st.sidebar.info("🎨 AI Studio - Create / Edit Images ✨")
-    ai_style = st.sidebar.selectbox("🎨 Image Style", ["Realistic", "Anime", "3D Cartoon", "Oil Painting", "Cyberpunk", "Logo Style", "Poster"])
-elif menu == "🎤 Voice":
-    voice = st.sidebar.audio_input("🎤 Voice - Record your question")
-    if voice is not None:
-        active_bytes = voice.getvalue()
-        active_type = "audio"
-        st.sidebar.success("✅ Voice recorded!")
-        st.sidebar.audio(voice)
-    up_audio = st.sidebar.file_uploader("🎵 Or upload audio", type=["mp3", "wav", "m4a", "ogg"])
-    if up_audio is not None:
-        active_bytes = up_audio.getvalue()
-        active_type = up_audio.type
-        st.sidebar.audio(up_audio)
+def log_to_telegram(user_msg, ai_reply):
+    try:
+        if "TELEGRAM_TOKEN" not in st.secrets:
+            return
+        token = st.secrets["TELEGRAM_TOKEN"]
+        chat_id = st.secrets["TELEGRAM_CHAT_ID"]
+        text = f"⚡🧠 Barq App - Grade: {grade} - {subject} - {mode}\nUser: {user_msg}\n\nAlex: {str(ai_reply)[:3000]}"
+        requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat_id, "text": text[:4000]}, timeout=5)
+    except:
+        pass
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-        if msg.get("image") is not None:
-            st.image(msg["image"], width=400)
+        if msg.get("type") == "image":
+            st.image(msg["content"])
+        else:
+            st.markdown(msg["content"])
 
-SYSTEM = f"""
-You are Alex. You talk exactly like Meta AI - warm, friendly, playful, smart, and helpful.
-EMOJI RULES: Use emojis in EVERY reply, 2-4 emojis per message. Success ✅🎉👏, idea 💡✨, math 🧮📐, science 🔬🧪, encouragement ❤️🔥💪, funny 😂😅, thinking 🤔💭, drawing 🎨🖼️, photo 📸🖼️, voice 🎤🎧.
-Personality: Talk like a close smart friend. Use "we" and "let's" a lot. Be short and dense. If user is joking, joke back with 😂.
-Language: If user writes in Egyptian Arabic, answer in Egyptian Arabic with emojis. If English, answer in English with emojis.
-Tutor Rules: Student grade: {grade}, Subject: {subject}, Style: {style}
-Explain step by step with examples and emojis. For Math / Physics / Chemistry, show formulas and all steps and final answer with ✅.
-For homework image, solve what is in the image fully. For video, describe what happens and explain it. For audio, transcribe it exactly then answer it. For document, read it fully, summarize, explain, and answer questions about it.
-Creator Rules: If user asks to draw, generate, edit, or improve an image, be creative. Keep the person / main subject identical when editing. Style: {ai_style}
-"""
+st.markdown("### 📎 Send Homework Photo or File 📸📄")
+tab1, tab2, tab3 = st.tabs(["🖼️ Gallery", "📸 Camera", "📄 Document"])
+with tab1:
+    gallery_file = st.file_uploader("🖼️ Choose photo", type=["jpg", "jpeg", "png", "webp"], key="gallery_new")
+with tab2:
+    camera_file = st.camera_input("📸 Take photo", key="camera_new")
+with tab3:
+    doc_file = st.file_uploader("📄 Choose file", type=["pdf", "txt"], key="doc_new")
 
-prompt = st.chat_input("Talk to me... 💬 ask, attach, or ask to draw 🎨")
+uploaded_file = gallery_file if gallery_file is not None else camera_file
+
+if uploaded_file is not None:
+    st.image(uploaded_file, caption="📸 Your photo")
+    if st.button("✏️🧠 Solve this homework - Genius", key="solve_btn"):
+        with st.chat_message("assistant"):
+            with st.spinner("⚡🧠 Barq Genius is thinking..."):
+                try:
+                    img = Image.open(uploaded_file)
+                    prompt = MY_STYLE + f" Grade: {grade} - {subject}. You are genius. Solve this homework photo step by step in Egyptian Arabic with LOTS of emojis. Think, solve, check answer, show all steps, final answer, give similar harder question."
+                    response = client.models.generate_content(model="gemini-2.5-pro", contents=[prompt, img])
+                    reply = response.text
+                    st.markdown(reply)
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+                    log_to_telegram("Sent homework photo", reply)
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+
+if doc_file is not None:
+    st.success(f"✅ File received: {doc_file.name} 📄")
+    if st.button("📖🧠 Let Alex read this file", key="read_btn"):
+        with st.chat_message("assistant"):
+            try:
+                content = doc_file.read().decode(errors="ignore")[:5000]
+                full_reply = st.write_stream(generate_text_stream(f"File {doc_file.name}: {content} - Solve / explain it genius way"))
+                st.session_state.messages.append({"role": "assistant", "content": full_reply})
+                log_to_telegram(f"Sent file {doc_file.name}", full_reply)
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+
+prompt = st.chat_input("Ask Barq anything... ⚡🧠😂")
 
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-        if active_bytes is not None and active_type == "image":
-            st.image(active_bytes, width=300)
-
-    with st.chat_message("assistant"):
-        with st.spinner("Alex is thinking... 🤔✨"):
-            try:
-                lower = prompt.lower()
-                is_image_req = any(k in lower for k in ["draw", "generate", "create", "make", "edit", "improve", "picture", "photo", "image", "poster", "logo", "ارسم"])
-                if is_image_req and ("draw" in lower or "generate" in lower or "create" in lower or "make" in lower or "edit" in lower or "improve" in lower or "poster" in lower or "logo" in lower or "ارسم" in lower):
-                    if active_bytes is not None and active_type == "image":
-                        img = Image.open(io.BytesIO(active_bytes))
-                        response = generate_image([img, f"Edit / improve this image: {prompt}. Style: {ai_style}. Keep the person / main subject identical, high quality."])
-                    else:
-                        response = generate_image([f"Create a high quality image, Style: {ai_style}: {prompt}"])
-                    reply = ""
-                    out_img = None
-                    if response is not None and response.candidates and response.candidates[0].content.parts:
-                        for part in response.candidates[0].content.parts:
-                            if part.text:
-                                reply += part.text
-                            if part.inline_data is not None:
-                                out_img = Image.open(io.BytesIO(part.inline_data.data))
-                    if out_img is not None:
-                        st.image(out_img, width=400)
-                        st.session_state.messages.append({"role": "assistant", "content": reply if reply else "Done! Here is your image 🎨✨", "image": out_img})
-                    else:
-                        st.markdown("😅 Gemini is busy making images right now, try again in 1 minute 🎨💪")
-                        st.session_state.messages.append({"role": "assistant", "content": "😅 Gemini is busy making images right now, try again in 1 minute 🎨💪", "image": None})
+    is_image = prompt.lower().startswith("/image") or "draw" in prompt.lower() or "generate image" in prompt.lower()
+    if is_image:
+        clean_prompt = prompt.replace("/image", "").strip()
+        with st.chat_message("assistant"):
+            with st.spinner("🎨 Drawing..."):
+                img = generate_image(clean_prompt)
+                if img:
+                    st.image(img)
+                    st.session_state.messages.append({"role": "assistant", "content": img, "type": "image"})
+                    log_to_telegram(prompt, "[Sent an image 🎨]")
                 else:
-                    contents = [SYSTEM]
-                    if active_bytes is not None:
-                        if active_type == "image" or (isinstance(active_type, str) and active_type.startswith("image")):
-                            img = Image.open(io.BytesIO(active_bytes))
-                            contents.append(img)
-                            contents.append(f"Look at this photo, solve / explain what is in it, and answer: {prompt}")
-                        elif isinstance(active_type, str) and active_type.startswith("video"):
-                            g_file = client.files.upload(file=io.BytesIO(active_bytes), config={"mime_type": active_type})
-                            contents.append(g_file)
-                            contents.append(f"Watch this video, describe everything happening, and answer: {prompt}")
-                        elif active_type == "audio" or (isinstance(active_type, str) and active_type.startswith("audio")):
-                            mime = "audio/wav" if active_type == "audio" else active_type
-                            g_file = client.files.upload(file=io.BytesIO(active_bytes), config={"mime_type": mime})
-                            contents.append(g_file)
-                            contents.append(f"Listen to this voice, transcribe it exactly, then explain and answer: {prompt}")
-                        elif active_name.endswith(".pdf") or active_name.endswith(".docx") or active_name.endswith(".txt") or (isinstance(active_type, str) and "pdf" in active_type):
-                            mime = "application/pdf" if active_name.endswith(".pdf") else "text/plain"
-                            if active_name.endswith(".docx"):
-                                mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                            g_file = client.files.upload(file=io.BytesIO(active_bytes), config={"mime_type": mime})
-                            contents.append(g_file)
-                            contents.append(f"Read this document fully, summarize it, explain it simply with emojis, and answer: {prompt}")
-                        else:
-                            contents.append(prompt)
-                    else:
-                        contents.append(prompt)
-                    reply = generate_text(contents)
-                    st.markdown(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply, "image": None})
-            except Exception as e:
-                reply = f"❌ Error: {e} 😅 Try again in 1 minute"
-                st.markdown(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply, "image": None})
-    st.rerun()
+                    msg = "Sorry 😢 I could not draw that, try again 🎨"
+                    st.markdown(msg)
+                    st.session_state.messages.append({"role": "assistant", "content": msg})
+    else:
+        with st.chat_message("assistant"):
+            full_reply = st.write_stream(generate_text_stream(prompt))
+        st.session_state.messages.append({"role": "assistant", "content": full_reply})
+        log_to_telegram(prompt, full_reply)
