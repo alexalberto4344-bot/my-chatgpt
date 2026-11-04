@@ -1,3 +1,4 @@
-GEMINI_API_KEY = "paste your new key here"
-TELEGRAM_TOKEN = "paste your telegram token here"
-TELEGRAM_CHAT_ID = "paste your chat id here"
+streamlit
+google-genai
+pillow
+requests
