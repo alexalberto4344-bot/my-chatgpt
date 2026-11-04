@@ -9,12 +9,12 @@ st.title("Barq ⚡🧠")
 st.caption("Powered by Alex 🤖 - The Smartest One 🔥⚡")
 
 try:
-    GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
+    _KEY = st.secrets["_API_KEY"]
 except:
-    st.error("❌ Please add GEMINI_API_KEY in Secrets")
+    st.error("❌ Please add _API_KEY in Secrets")
     st.stop()
 
-client = genai.Client(api_key=GEMINI_KEY)
+client = genai.Client(api_key=_KEY)
 
 # --- SIDEBAR: Settings + Gallery / Camera / Document ON THE SIDE ---
 st.sidebar.title("⚡ Barq Settings 📚")
@@ -25,7 +25,7 @@ st.sidebar.info(f"⚡🧠 You are in: {grade} - {subject} - {mode}")
 
 if st.sidebar.button("🔍 Test Connection"):
     try:
-        r = client.models.generate_content(model="gemini-2.5-flash Lite", contents="hi")
+        r = client.models.generate_content(model="-2.5-flash-lite", contents="hi")
         st.sidebar.success(f"✅ Working! {r.text[:100]}")
     except Exception as e:
         st.sidebar.error(f"❌ Error: {e}")
@@ -84,7 +84,7 @@ def get_history_text():
 def generate_text_stream(user_input):
     history = get_history_text()
     full = MY_STYLE + f"\nGrade: {grade}, Subject: {subject}, Mode: {mode}\nChat History:\n{history}\nStudent Now: " + str(user_input)
-    models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"]
+    models = [["gemini-2.5-flash-lite", "gemini-2.5-flash"]]
     for model in models:
         try:
             stream = client.models.generate_content_stream(model=model, contents=full)
@@ -95,11 +95,11 @@ def generate_text_stream(user_input):
         except Exception as e:
             print(f"Model {model} failed: {e}")
             continue
-    yield "❌ Sorry 😅 - All models failed. Check your GEMINI_API_KEY in Secrets."
+    yield "❌ Sorry 😅 - All models failed. Check your _API_KEY in Secrets."
 
 def generate_image(prompt_text):
     try:
-        response = client.models.generate_content(model="gemini-2.0-flash-preview-image-generation", contents=prompt_text)
+       response = client.models.generate_content(model="gemini-2.5-flash-image", contents=prompt_text)
         for part in response.candidates[0].content.parts:
             if part.inline_data:
                 return Image.open(BytesIO(part.inline_data.data))
@@ -141,7 +141,7 @@ if uploaded_file is not None:
                 try:
                     img = Image.open(uploaded_file)
                     prompt = MY_STYLE + f" Grade: {grade} - {subject}. Solve this homework photo step by step in Egyptian Arabic with LOTS of emojis. Think, solve, check answer, show all steps, final answer, give similar question."
-                    response = client.models.generate_content(model="gemini-2.0-flash", contents=[prompt, img])
+                    response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=[prompt, img])
                     reply = response.text
                     st.markdown(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
