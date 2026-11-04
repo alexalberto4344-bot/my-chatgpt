@@ -2,8 +2,6 @@ import streamlit as st
 from google import genai
 from PIL import Image
 import io
-import fitz
-import docx
 
 st.set_page_config(page_title="Alex ⚡", page_icon="⚡")
 st.title("Alex ⚡🤖")
@@ -34,7 +32,7 @@ menu = st.sidebar.radio(
 
 active_bytes = None
 active_type = None
-active_text = ""
+active_name = ""
 ai_style = "Realistic"
 
 if menu == "🖼️ Gallery":
@@ -42,6 +40,7 @@ if menu == "🖼️ Gallery":
     if up is not None:
         active_bytes = up.getvalue()
         active_type = up.type
+        active_name = up.name
         st.sidebar.success(f"✅ Gallery: {up.name}")
         if up.type.startswith("image"):
             st.sidebar.image(up, width=200)
@@ -59,21 +58,10 @@ elif menu == "📸 Camera":
 elif menu == "📄 Document":
     doc = st.sidebar.file_uploader("📄 Document - PDF / Word / Text", type=["pdf", "docx", "txt"])
     if doc is not None:
-        st.sidebar.success(f"✅ Document: {doc.name}")
-        try:
-            if doc.name.endswith(".pdf"):
-                pdf = fitz.open(stream=doc.getvalue(), filetype="pdf")
-                for page in pdf:
-                    active_text += page.get_text() + "\n"
-            elif doc.name.endswith(".docx"):
-                d = docx.Document(io.BytesIO(doc.getvalue()))
-                for p in d.paragraphs:
-                    active_text += p.text + "\n"
-            else:
-                active_text = doc.getvalue().decode("utf-8", errors="ignore")
-            st.sidebar.text_area("📄 Document text", active_text[:2000], height=150)
-        except Exception as e:
-            st.sidebar.error(f"❌ Could not read document: {e}")
+        active_bytes = doc.getvalue()
+        active_type = doc.type
+        active_name = doc.name
+        st.sidebar.success(f"✅ Document: {doc.name} 📄")
 
 elif menu == "🎨 AI Studio":
     st.sidebar.info("🎨 AI Studio - Create / Edit Images ✨")
@@ -104,24 +92,16 @@ for msg in st.session_state.messages:
 
 SYSTEM = f"""
 You are Alex. You talk exactly like Meta AI - warm, friendly, playful, smart, and helpful.
-
-EMOJI RULES - VERY IMPORTANT:
-- Use emojis in EVERY reply, like a real friend on WhatsApp.
-- Use 2-4 emojis per message, not too many, not zero.
-- Use emojis that match the meaning: for success use ✅🎉👏, for idea use 💡✨, for math use 🧮📐, for science use 🔬🧪, for love / encouragement use ❤️🔥💪, for funny use 😂😅, for thinking use 🤔💭, for drawing use 🎨🖼️, for photo use 📸🖼️, for voice use 🎤🎧.
-- Start replies with an emoji sometimes, like "Nice! 🎉" or "Got it! 👌".
-- If user sends emojis, reply with emojis too. Match their vibe.
-- Never reply with plain text without emojis.
-
-Personality: Talk like a close smart friend, not like a boring textbook. Use "we" and "let's" a lot. Be short and dense, no useless long intro. Lead with the best point. If user is joking, joke back with 😂. Match their energy.
-Language: If user writes in Egyptian Arabic, answer in Egyptian Arabic with emojis, friendly and casual. If English, answer in English with emojis.
+EMOJI RULES: Use emojis in EVERY reply, 2-4 emojis per message. Use emojis that match meaning: success ✅🎉👏, idea 💡✨, math 🧮📐, science 🔬🧪, encouragement ❤️🔥💪, funny 😂😅, thinking 🤔💭, drawing 🎨🖼️, photo 📸🖼️, voice 🎤🎧.
+Personality: Talk like a close smart friend, not boring textbook. Use "we" and "let's" a lot. Be short and dense. If user is joking, joke back with 😂.
+Language: If user writes in Egyptian Arabic, answer in Egyptian Arabic with emojis. If English, answer in English with emojis.
 Tutor Rules: Student grade: {grade}, Subject: {subject}, Style: {style}
-Understand question even with spelling mistakes or slang. Explain step by step with examples and emojis for each step.
+Explain step by step with examples and emojis.
 For Math / Physics / Chemistry, show formulas and all steps and final answer with ✅.
 For homework image, solve what is in the image fully.
 For video, describe what happens and explain it.
 For audio / voice, transcribe it exactly then answer it.
-For document text, summarize, explain, and answer questions about it.
+For document, read it fully, summarize, explain, and answer questions about it.
 Creator Rules: If user asks to draw, generate, edit, or improve an image, be creative. Keep the person / main subject identical when editing. Style: {ai_style}
 """
 
@@ -164,9 +144,7 @@ if prompt:
                         st.session_state.messages.append({"role": "assistant", "content": reply, "image": None})
                 else:
                     contents = [SYSTEM]
-                    if active_text:
-                        contents.append(f"Document content:\n{active_text}\n\nQuestion: {prompt}")
-                    elif active_bytes is not None:
+                    if active_bytes is not None:
                         if active_type == "image" or (isinstance(active_type, str) and active_type.startswith("image")):
                             img = Image.open(io.BytesIO(active_bytes))
                             contents.append(img)
@@ -180,6 +158,13 @@ if prompt:
                             g_file = client.files.upload(file=io.BytesIO(active_bytes), config={"mime_type": mime})
                             contents.append(g_file)
                             contents.append(f"Listen to this voice, transcribe it exactly, then explain and answer: {prompt}")
+                        elif active_name.endswith(".pdf") or active_name.endswith(".docx") or active_name.endswith(".txt") or (isinstance(active_type, str) and "pdf" in active_type) or (isinstance(active_type, str) and "document" in active_type):
+                            mime = "application/pdf" if active_name.endswith(".pdf") else "text/plain"
+                            if active_name.endswith(".docx"):
+                                mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            g_file = client.files.upload(file=io.BytesIO(active_bytes), config={"mime_type": mime})
+                            contents.append(g_file)
+                            contents.append(f"Read this document fully, summarize it, explain it simply with emojis, and answer: {prompt}")
                         else:
                             contents.append(prompt)
                     else:
