@@ -12,7 +12,7 @@ client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Function to try many models if one is busy - fixes 503 error
 def generate_text(contents):
-    models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+    models = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
     last_error = ""
     for model in models:
         try:
@@ -21,7 +21,7 @@ def generate_text(contents):
         except Exception as e:
             last_error = str(e)
             if "503" in last_error or "UNAVAILABLE" in last_error or "overloaded" in last_error.lower():
-                time.sleep(2)
+                time.sleep(0)
                 continue
             else:
                 continue
