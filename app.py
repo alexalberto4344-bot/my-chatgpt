@@ -25,7 +25,7 @@ st.sidebar.info(f"⚡🧠 You are in: {grade} - {subject} - {mode}")
 
 if st.sidebar.button("🔍 Test Connection"):
     try:
-        r = client.models.generate_content(model="-2.5-flash-lite", contents="hi")
+        r = client.models.generate_content(model="gemini-2.0-flash", contents="hi")
         st.sidebar.success(f"✅ Working! {r.text[:100]}")
     except Exception as e:
         st.sidebar.error(f"❌ Error: {e}")
