@@ -5,32 +5,31 @@ import io
 import fitz
 import docx
 
-st.set_page_config(page_title="Alex", page_icon="⚡")
-st.title("Alex ⚡")
-st.caption("Your best friend, tutor, and creator")
+st.set_page_config(page_title="Alex ⚡", page_icon="⚡")
+st.title("Alex ⚡🤖")
+st.caption("Your best friend, tutor, and creator 💬✨")
 
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-st.sidebar.header("Study Settings")
+st.sidebar.header("📚 Study Settings")
 grade = st.sidebar.selectbox(
-    "Your Grade",
+    "🎓 Your Grade",
     ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
      "Prep 1", "Prep 2", "Prep 3",
      "Secondary 1", "Secondary 2", "Secondary 3",
      "University", "General"]
 )
 subject = st.sidebar.selectbox(
-    "Subject",
+    "📖 Subject",
     ["General", "Arabic", "English", "Math", "Science", "Physics", "Chemistry", "Biology", "History", "Geography", "Philosophy", "French", "German", "Computer", "Religion"]
 )
-style = st.sidebar.selectbox("Explain Style", ["Simple and Fun", "Step by Step", "Exam Answer", "Deep Explanation"])
+style = st.sidebar.selectbox("✍️ Explain Style", ["Simple and Fun", "Step by Step", "Exam Answer", "Deep Explanation"])
 
-# LIKE WHATSAPP MENU - Gallery / Camera / Document / AI Studio / Voice
-st.sidebar.header("Attach - Like WhatsApp")
+st.sidebar.header("📎 Attach - Like WhatsApp")
 menu = st.sidebar.radio(
     "Choose",
-    ["Gallery", "Camera", "Document", "AI Studio", "Voice"],
-    horizontal=True
+    ["🖼️ Gallery", "📸 Camera", "📄 Document", "🎨 AI Studio", "🎤 Voice"],
+    horizontal=False
 )
 
 active_bytes = None
@@ -38,29 +37,29 @@ active_type = None
 active_text = ""
 ai_style = "Realistic"
 
-if menu == "Gallery":
-    up = st.sidebar.file_uploader("Gallery - Photo / Video", type=["png", "jpg", "jpeg", "webp", "mp4", "mov"])
+if menu == "🖼️ Gallery":
+    up = st.sidebar.file_uploader("🖼️ Gallery - Photo / Video", type=["png", "jpg", "jpeg", "webp", "mp4", "mov"])
     if up is not None:
         active_bytes = up.getvalue()
         active_type = up.type
-        st.sidebar.success(f"Gallery: {up.name}")
+        st.sidebar.success(f"✅ Gallery: {up.name}")
         if up.type.startswith("image"):
             st.sidebar.image(up, width=200)
         else:
             st.sidebar.video(up)
 
-elif menu == "Camera":
-    cam = st.sidebar.camera_input("Camera - Take photo now")
+elif menu == "📸 Camera":
+    cam = st.sidebar.camera_input("📸 Camera - Take photo now")
     if cam is not None:
         active_bytes = cam.getvalue()
         active_type = "image"
-        st.sidebar.success("Photo taken!")
+        st.sidebar.success("✅ Photo taken!")
         st.sidebar.image(cam, width=200)
 
-elif menu == "Document":
-    doc = st.sidebar.file_uploader("Document - PDF / Word / Text", type=["pdf", "docx", "txt"])
+elif menu == "📄 Document":
+    doc = st.sidebar.file_uploader("📄 Document - PDF / Word / Text", type=["pdf", "docx", "txt"])
     if doc is not None:
-        st.sidebar.success(f"Document: {doc.name}")
+        st.sidebar.success(f"✅ Document: {doc.name}")
         try:
             if doc.name.endswith(".pdf"):
                 pdf = fitz.open(stream=doc.getvalue(), filetype="pdf")
@@ -72,24 +71,23 @@ elif menu == "Document":
                     active_text += p.text + "\n"
             else:
                 active_text = doc.getvalue().decode("utf-8", errors="ignore")
-            st.sidebar.text_area("Document text", active_text[:2000], height=150)
+            st.sidebar.text_area("📄 Document text", active_text[:2000], height=150)
         except Exception as e:
-            st.sidebar.error(f"Could not read document: {e}")
+            st.sidebar.error(f"❌ Could not read document: {e}")
 
-elif menu == "AI Studio":
-    st.sidebar.info("AI Studio - Create / Edit Images")
-    ai_style = st.sidebar.selectbox("Image Style", ["Realistic", "Anime", "3D Cartoon", "Oil Painting", "Cyberpunk", "Logo Style", "Poster"])
-    ai_size = st.sidebar.selectbox("Size", ["Square", "Portrait", "Landscape"])
-    st.sidebar.caption("Write in chat: draw a ... and Alex will create it in this style")
+elif menu == "🎨 AI Studio":
+    st.sidebar.info("🎨 AI Studio - Create / Edit Images ✨")
+    ai_style = st.sidebar.selectbox("🎨 Image Style", ["Realistic", "Anime", "3D Cartoon", "Oil Painting", "Cyberpunk", "Logo Style", "Poster"])
+    st.sidebar.caption("Write in chat: draw a ... ✨")
 
-elif menu == "Voice":
-    voice = st.sidebar.audio_input("Voice - Record your question")
+elif menu == "🎤 Voice":
+    voice = st.sidebar.audio_input("🎤 Voice - Record your question")
     if voice is not None:
         active_bytes = voice.getvalue()
         active_type = "audio"
-        st.sidebar.success("Voice recorded!")
+        st.sidebar.success("✅ Voice recorded!")
         st.sidebar.audio(voice)
-    up_audio = st.sidebar.file_uploader("Or upload audio", type=["mp3", "wav", "m4a", "ogg"])
+    up_audio = st.sidebar.file_uploader("🎵 Or upload audio", type=["mp3", "wav", "m4a", "ogg"])
     if up_audio is not None:
         active_bytes = up_audio.getvalue()
         active_type = up_audio.type
@@ -106,11 +104,20 @@ for msg in st.session_state.messages:
 
 SYSTEM = f"""
 You are Alex. You talk exactly like Meta AI - warm, friendly, playful, smart, and helpful.
-Personality: Talk like a close smart friend, not like a boring textbook. Use "we" and "let's" a lot. Be short and dense, no useless long intro. Lead with the best point. If user is joking, joke back. Match their energy.
-Language: If user writes in Egyptian Arabic, answer in Egyptian Arabic, friendly and casual. If English, answer in English.
+
+EMOJI RULES - VERY IMPORTANT:
+- Use emojis in EVERY reply, like a real friend on WhatsApp.
+- Use 2-4 emojis per message, not too many, not zero.
+- Use emojis that match the meaning: for success use ✅🎉👏, for idea use 💡✨, for math use 🧮📐, for science use 🔬🧪, for love / encouragement use ❤️🔥💪, for funny use 😂😅, for thinking use 🤔💭, for drawing use 🎨🖼️, for photo use 📸🖼️, for voice use 🎤🎧.
+- Start replies with an emoji sometimes, like "Nice! 🎉" or "Got it! 👌".
+- If user sends emojis, reply with emojis too. Match their vibe.
+- Never reply with plain text without emojis.
+
+Personality: Talk like a close smart friend, not like a boring textbook. Use "we" and "let's" a lot. Be short and dense, no useless long intro. Lead with the best point. If user is joking, joke back with 😂. Match their energy.
+Language: If user writes in Egyptian Arabic, answer in Egyptian Arabic with emojis, friendly and casual. If English, answer in English with emojis.
 Tutor Rules: Student grade: {grade}, Subject: {subject}, Style: {style}
-Understand question even with spelling mistakes or slang. Explain step by step with examples.
-For Math / Physics / Chemistry, show formulas and all steps and final answer.
+Understand question even with spelling mistakes or slang. Explain step by step with examples and emojis for each step.
+For Math / Physics / Chemistry, show formulas and all steps and final answer with ✅.
 For homework image, solve what is in the image fully.
 For video, describe what happens and explain it.
 For audio / voice, transcribe it exactly then answer it.
@@ -118,7 +125,7 @@ For document text, summarize, explain, and answer questions about it.
 Creator Rules: If user asks to draw, generate, edit, or improve an image, be creative. Keep the person / main subject identical when editing. Style: {ai_style}
 """
 
-prompt = st.chat_input("Talk to me... ask, attach, or ask to draw")
+prompt = st.chat_input("Talk to me... 💬 ask, attach, or ask to draw 🎨")
 
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -128,12 +135,12 @@ if prompt:
             st.image(active_bytes, width=300)
 
     with st.chat_message("assistant"):
-        with st.spinner("Alex is thinking..."):
+        with st.spinner("Alex is thinking... 🤔✨"):
             try:
                 lower = prompt.lower()
-                is_image_req = any(k in lower for k in ["draw", "generate", "create", "make", "edit", "improve", "picture", "photo", "image", "poster", "logo"])
+                is_image_req = any(k in lower for k in ["draw", "generate", "create", "make", "edit", "improve", "picture", "photo", "image", "poster", "logo", "ارسم"])
 
-                if is_image_req and ("draw" in lower or "generate" in lower or "create" in lower or "make" in lower or "edit" in lower or "improve" in lower or "poster" in lower or "logo" in lower):
+                if is_image_req and ("draw" in lower or "generate" in lower or "create" in lower or "make" in lower or "edit" in lower or "improve" in lower or "poster" in lower or "logo" in lower or "ارسم" in lower):
                     if active_bytes is not None and active_type == "image":
                         img = Image.open(io.BytesIO(active_bytes))
                         img_contents = [img, f"Edit / improve this image: {prompt}. Style: {ai_style}. Keep the person / main subject identical, high quality."]
@@ -151,9 +158,9 @@ if prompt:
                                 out_img = Image.open(io.BytesIO(part.inline_data.data))
                     if out_img is not None:
                         st.image(out_img, width=400)
-                        st.session_state.messages.append({"role": "assistant", "content": reply if reply else "Done! Here is your image:", "image": out_img})
+                        st.session_state.messages.append({"role": "assistant", "content": reply if reply else "Done! Here is your image 🎨✨", "image": out_img})
                     else:
-                        st.markdown(reply if reply else "Image generated but could not display.")
+                        st.markdown(reply if reply else "Image generated but could not display 🎨")
                         st.session_state.messages.append({"role": "assistant", "content": reply, "image": None})
                 else:
                     contents = [SYSTEM]
@@ -184,7 +191,7 @@ if prompt:
                     st.session_state.messages.append({"role": "assistant", "content": reply, "image": None})
 
             except Exception as e:
-                reply = f"Error: {e}"
+                reply = f"❌ Error: {e}"
                 st.markdown(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply, "image": None})
     st.rerun()
