@@ -21,32 +21,31 @@ grade = st.sidebar.selectbox("📚 Choose Grade:", ["1 Primary", "2 Primary", "3
 subject = st.sidebar.selectbox("📖 Choose Subject:", ["➗ Math", "🔬 Science", "📝 Arabic", "🔤 English", "🌍 Social Studies", "⚛️ Physics", "🧪 Chemistry", "🧬 Biology", "🏛️ History", "🗺️ Geography", "🇫🇷 French", "💡 Other"])
 mode = st.sidebar.radio("🎯 Mode:", ["💬 Chat & Draw 🎨", "📖 Explain Lesson 📚", "✏️ Solve Homework 🧠", "🏆 Genius Mode 🧠🔥"])
 st.sidebar.info(f"⚡🧠 You are in: {grade} - {subject} - {mode}")
-st.sidebar.markdown("---")
-st.sidebar.markdown("Made with ⚡🧠❤️ by Barq - Smartest AI")
+
+# --- FIXED: Show real error ---
+if st.sidebar.button("🔍 Test Connection"):
+    try:
+        r = client.models.generate_content(model="gemini-2.0-flash", contents="hi")
+        st.sidebar.success(f"✅ Working! Model replied: {r.text[:100]}")
+    except Exception as e:
+        st.sidebar.error(f"❌ Error: {e}")
 
 MY_STYLE = """
-You are Alex inside Barq app. You are THE SMARTEST AI in the world, smarter than ChatGPT, smarter than everyone.
+You are Alex inside Barq app. You are THE SMARTEST AI in the world.
 You talk exactly like a friendly Egyptian friend on WhatsApp.
 Style:
 - ALWAYS use LOTS of emojis in EVERY reply: 😂 🔥 ⚡ 👌 🎨 📚 🧠 ✨ 💪 😍 🤣 🏆
-- Put emojis at start, middle, and end of every sentence.
+- Speak Egyptian Arabic slang, very friendly and funny.
 - Start replies with: tamam 😂, fahmtak 👌, aaash 🔥, aah eftakart 💡, bos ya sahby 😍
-- Be short and fun, never formal, never boring.
-- Use phrases like: khalas keda ✅, garab w olly 👌, sah keda? 🤔, de baa aham heta 🔥
+- Be short and fun, never formal.
 - Always encourage: aaash wallah 💪🔥, enta keda tamam ✅😍
 - Never say As an AI.
-
-SMART RULES - You MUST follow this:
-1- THINK FIRST: Before answering, think step by step in your head.
-2- CHECK YOUR ANSWER: After solving, check if answer is correct, if not fix it.
-3- REMEMBER: Use full chat history, remember what student said before.
-4- EXPERT: You are expert in ALL Egyptian curriculum, Math, Physics, Chemistry, Biology, Arabic, English, all grades.
-5- HARD QUESTIONS: Even if question is very hard, university level, solve it.
-6- EXPLAIN SMART: Explain like a genius teacher, simple, with example, with trick to remember.
-7- If Solve Homework: Solve step by step with emojis, show all steps, check answer, final answer with 🎉, give similar harder question.
-8- If Explain Lesson: Explain like a story, give example, give trick, ask 2 smart questions.
-9- If Genius Mode: Be super smart, give deep answer, give extra info, give secret trick no one knows.
-10- Never say you dont know. Always try, always find answer.
+- You know all Egyptian curriculum from Primary to Secondary.
+- If Solve Homework: solve step by step with emojis, show all steps, final answer with 🎉, give similar question.
+- If Explain Lesson: explain like a story with example and emojis, then ask 2 questions.
+- If Genius Mode: Be super smart, give deep answer, give extra info, give secret trick.
+- THINK FIRST: think step by step, then check answer, then reply.
+- Never say you dont know. Always try.
 """
 
 def get_history_text():
@@ -58,22 +57,20 @@ def get_history_text():
 
 def generate_text_stream(user_input):
     history = get_history_text()
-    full = MY_STYLE + f"\nGrade: {grade}, Subject: {subject}, Mode: {mode}\nChat History:\n{history}\nStudent Now: " + str(user_input) + "\nAlex, think step by step, check answer, then reply with emojis:"
-    try:
-        stream = client.models.generate_content_stream(model="gemini-2.5-pro", contents=full)
-        for chunk in stream:
-            if chunk.text:
-                yield chunk.text
-        return
-    except Exception:
+    full = MY_STYLE + f"\nGrade: {grade}, Subject: {subject}, Mode: {mode}\nChat History:\n{history}\nStudent Now: " + str(user_input)
+    # FIXED: Use only FREE models that work with free key, in order
+    models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"]
+    for model in models:
         try:
-            stream = client.models.generate_content_stream(model="gemini-2.0-flash", contents=full)
+            stream = client.models.generate_content_stream(model=model, contents=full)
             for chunk in stream:
                 if chunk.text:
                     yield chunk.text
             return
-        except Exception:
-            yield "Sorry 😅 server is busy, try again ⚡"
+        except Exception as e:
+            print(f"Model {model} failed: {e}")
+            continue
+    yield f"❌ Sorry 😅 - All models failed. Check your GEMINI_API_KEY in Secrets. Make sure it is correct and you have quota."
 
 def generate_image(prompt_text):
     try:
@@ -124,8 +121,8 @@ if uploaded_file is not None:
             with st.spinner("⚡🧠 Barq Genius is thinking..."):
                 try:
                     img = Image.open(uploaded_file)
-                    prompt = MY_STYLE + f" Grade: {grade} - {subject}. You are genius. Solve this homework photo step by step in Egyptian Arabic with LOTS of emojis. Think, solve, check answer, show all steps, final answer, give similar harder question."
-                    response = client.models.generate_content(model="gemini-2.5-pro", contents=[prompt, img])
+                    prompt = MY_STYLE + f" Grade: {grade} - {subject}. Solve this homework photo step by step in Egyptian Arabic with LOTS of emojis. Think, solve, check answer, show all steps, final answer, give similar question."
+                    response = client.models.generate_content(model="gemini-2.0-flash", contents=[prompt, img])
                     reply = response.text
                     st.markdown(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
